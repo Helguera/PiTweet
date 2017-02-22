@@ -2,12 +2,15 @@ package piTweet;
 
 import java.awt.BorderLayout;
 import java.awt.EventQueue;
+import java.awt.Image;
 
 import javax.swing.ButtonGroup;
+import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
@@ -28,13 +31,25 @@ import java.awt.TextArea;
 import javax.swing.SwingConstants;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 
 import twitter4j.conf.*;
 import twitter4j.*;
 import java.awt.Label;
 import javax.swing.JSeparator;
 import javax.swing.JCheckBox;
+import javax.swing.JFileChooser;
 import javax.swing.JList;
+import java.awt.List;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.io.File;
+import javax.swing.border.TitledBorder;
+import javax.swing.border.BevelBorder;
+import javax.swing.border.LineBorder;
+import java.awt.Color;
 
 public class Ventana_Main extends JFrame {
 
@@ -42,7 +57,10 @@ public class Ventana_Main extends JFrame {
 	private String oAuthConsumerSecret = "";
 	private String oAuthAccessToken = "";
 	private String oAuthAccessTokenSecret = "";
-	Twitter twitter;
+	private Twitter twitter;
+	public static String seleccionado;
+	private FormatoFecha formato;
+	private String imagen = null;
 	
 	private JPanel contentPane;
 	private JPasswordField pwdCk;
@@ -53,21 +71,27 @@ public class Ventana_Main extends JFrame {
 	private TextArea textAreaMain;
 	private JLabel lblCaracteres;
 	private int num_caracteres;
-	JFormattedTextField frmtdtxtfldFecha;
+	private JCheckBox chckbxProgramar;
+	public static List list;
+	private JFormattedTextField frmtdtxtfldFecha;
+	private JButton btnEditar;
+	private JButton btnCancelar;
+	private JPanelBackground panel;
+	
 
 	
 	/**
 	 * Launch the application.
 	 */
-	public static void main(String[] args) {
+	public static void main(String[] args)  {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
 					Ventana_Main frame = new Ventana_Main();
 					frame.setVisible(true);
-					//do{
-						frame.setCaracteres(frame.getCaracteres());
-					//}while(true);
+					frame.setCaracteres(frame.getCaracteres());
+					//hilo_tweet hilo = new hilo_tweet();
+					//new Thread(hilo).start();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -79,10 +103,12 @@ public class Ventana_Main extends JFrame {
 	 * Create the frame.
 	 */
 	public Ventana_Main() {
+		Programados Lista = new Programados();
+		
 		setTitle("PiTweet");
 		setResizable(false);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100, 100, 527, 376);
+		setBounds(100, 100, 527, 528);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
 		setContentPane(contentPane);
@@ -110,7 +136,7 @@ public class Ventana_Main extends JFrame {
 		
 		pwdSck = new JPasswordField();
 		pwdSck.setText("");
-		pwdSck.setBounds(227, 30, 276, 19);
+		pwdSck.setBounds(228, 30, 275, 19);
 		contentPane.add(pwdSck);
 		
 		pwdAt = new JPasswordField();
@@ -156,22 +182,63 @@ public class Ventana_Main extends JFrame {
 		btnEnviar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				Configuracion();
-				if(rdbtnTweet.isSelected()){
+				if(!chckbxProgramar.isSelected()){
+					if(rdbtnTweet.isSelected()){
+						try{
+							twitter.updateStatus(textAreaMain.getText());
+							JOptionPane.showMessageDialog(null, "Tweet enviado", "", 1);
+						}catch(TwitterException te){
+							JOptionPane.showMessageDialog(null, "Algo ha salido mal, comprueba las Tokens", "Error", 0);
+						}
+						
+					}
+					if(rdbtnMensajeDirecto.isSelected()){
+						try {
+				            DirectMessage message = twitter.sendDirectMessage(txtusuario.getText(), textAreaMain.getText());
+				            JOptionPane.showMessageDialog(null, "Mensaje Directo enviado", "", 1);
+				        } catch (TwitterException te) {
+				        	JOptionPane.showMessageDialog(null, "Algo ha salido mal, comprueba las Tokens", "Error", 0);
+				        }
+					}
+				}else{
+					String fecha_string = frmtdtxtfldFecha.getText();
+					Date fecha = new Date();
 					try{
-						twitter.updateStatus(textAreaMain.getText());
-						JOptionPane.showMessageDialog(null, "Tweet enviado", "", 1);
-					}catch(TwitterException te){
-						JOptionPane.showMessageDialog(null, "Algo ha salido mal, comprueba las Tokens", "Error", 0);
+						formato = new FormatoFecha();
+						fecha =(Date)formato.stringToValue(fecha_string);
+					}catch(Exception f){
+						
 					}
 					
-				}
-				if(rdbtnMensajeDirecto.isSelected()){
-					try {
-			            DirectMessage message = twitter.sendDirectMessage(txtusuario.getText(), textAreaMain.getText());
-			            JOptionPane.showMessageDialog(null, "Mensaje Directo enviado", "", 1);
-			        } catch (TwitterException te) {
-			        	JOptionPane.showMessageDialog(null, "Algo ha salido mal, comprueba las Tokens", "Error", 0);
-			        }
+					Calendar calendario = Calendar.getInstance();
+					calendario.setTime(fecha);
+					Calendar actual = Calendar.getInstance();
+					if(actual.compareTo(calendario)<0){
+						Tweet t;
+						if (btnCancelar.isEnabled()){
+							t = Lista.getTweet(seleccionado);
+							t.setDate(calendario);
+							t.setText(textAreaMain.getText());
+							t.setTitulo(textAreaMain.getText());
+							if(imagen!=null){
+								t.setImage(imagen);
+							}
+							Lista.actualizar();
+							
+						}else{
+							t = new Tweet(textAreaMain.getText(),calendario,imagen);
+							try{
+								Lista.add(t);
+								textAreaMain.setText("");
+								imagen=null;
+								panel.setBackground(null, 0, 0);
+							}catch(Exception w){
+							}
+						}
+						
+					}else{
+						JOptionPane.showMessageDialog(null, "Fecha no valida", "Error", 0);
+					}
 				}
 			}
 		});
@@ -199,15 +266,18 @@ public class Ventana_Main extends JFrame {
 
 		
 		JLabelLink lblTutorial = new JLabelLink();
-		lblTutorial.setBounds(380, 243, 129, 21);
+		lblTutorial.setBounds(374, 506, 129, 21);
 		lblTutorial.setText("©Javier Helguera");
 		lblTutorial.setTextLink("©Javier Helguera");
-		lblTutorial.setLink("https://github.com/Helguera");
+		lblTutorial.setLink("https://github.com/Helguera/piTweet");
 		contentPane.add(lblTutorial);
 		
-		JSeparator separator = new JSeparator();
-		separator.setBounds(31, 227, 471, 2);
-		contentPane.add(separator);
+		JLabelLink lblDonate = new JLabelLink();
+		lblDonate.setBounds(31, 506, 92, 21);
+		lblDonate.setText("Donate Here");
+		lblDonate.setTextLink("Donate Here");
+		lblDonate.setLink("https://www.paypal.me/Helguera");
+		contentPane.add(lblDonate);
 		
 		try{
 			frmtdtxtfldFecha = new JFormattedTextField(new FormatoFecha());
@@ -218,12 +288,14 @@ public class Ventana_Main extends JFrame {
 		}catch(Exception e){
 		}
 		
-		JCheckBox chckbxProgramar = new JCheckBox("Programar");
+		chckbxProgramar = new JCheckBox("Programar");
 		chckbxProgramar.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if(chckbxProgramar.isSelected()){
+					btnEnviar.setText("Guardar");
 					frmtdtxtfldFecha.setEnabled(true);
 				}else{
+					btnEnviar.setText("Enviar");
 					frmtdtxtfldFecha.setEnabled(false);
 				}
 			}
@@ -231,12 +303,127 @@ public class Ventana_Main extends JFrame {
 		chckbxProgramar.setBounds(361, 172, 103, 23);
 		contentPane.add(chckbxProgramar);
 		
-		CustomListModel list_model = new CustomListModel();
-		//lista.setModel(list_model);
+		JPanel panel_1 = new JPanel();
+		panel_1.setBorder(new TitledBorder(null, "Imagen", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		panel_1.setBounds(29, 356, 378, 150);
+		contentPane.add(panel_1);
+		panel_1.setLayout(null);
+		
+		JButton btnAddImagen = new JButton("Añadir Imagen");
+		btnAddImagen.setBounds(231, 22, 136, 25);
+		panel_1.add(btnAddImagen);
+		
+		panel = new JPanelBackground();
+		panel.setBounds(12, 22, 211, 122);
+		panel_1.add(panel);
+		
+		JButton btnEliminarImagen = new JButton("Borrar");
+		btnEliminarImagen.setBounds(231, 52, 136, 25);
+		panel_1.add(btnEliminarImagen);
+		
+		JPanel panel_2 = new JPanel();
+		panel_2.setBorder(new TitledBorder(null, "Programados", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		panel_2.setBounds(29, 223, 474, 128);
+		contentPane.add(panel_2);
+		panel_2.setLayout(null);
+		
+		list = new List();
+		list.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				seleccionado=list.getSelectedItem();
+			}
+		});
+		list.setBounds(10, 21, 348, 97);
+		panel_2.add(list);
+		
+		JButton btnEliminar = new JButton("Eliminar");
+		btnEliminar.setBounds(366, 57, 96, 25);
+		panel_2.add(btnEliminar);
+		
+		btnEditar = new JButton("Editar");
+		btnEditar.setBounds(366, 21, 96, 25);
+		panel_2.add(btnEditar);
+		
+		btnCancelar = new JButton("Cancelar");
+		btnCancelar.setEnabled(false);
+		btnCancelar.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				btnCancelar.setEnabled(false);
+				try{
+					FormatoFecha prueba = new FormatoFecha();
+					textAreaMain.setText("");
+					Calendar hoy = Calendar.getInstance();
+					frmtdtxtfldFecha.setText(prueba.valueToString(hoy.getTime()));
+					imagen=null;
+					panel.setBackground(null, 0, 0);
+				}catch(Exception o){}
+			}
+		});
+		btnCancelar.setBounds(366, 93, 96, 25);
+		panel_2.add(btnCancelar);
+		
+		btnEditar.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(list.getItemCount()>0){
+					btnCancelar.setEnabled(true);
+				}
+				try{
+					FormatoFecha prueba = new FormatoFecha();
+					textAreaMain.setText(Lista.get(seleccionado));
+					frmtdtxtfldFecha.setText(prueba.valueToString(Lista.getTweet(seleccionado).getFecha().getTime()));
+				}catch(Exception o){}
+				ImageIcon h = new ImageIcon(Lista.getTweet(seleccionado).getImage());
+				panel.setBackground(Lista.getTweet(seleccionado).getImage(),h.getIconWidth(), h.getIconHeight());
+				
+			}
+		});
+		btnEliminar.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				btnCancelar.setEnabled(false);
+				if(list.getItemCount()>0){
+					try{
+						Lista.remove(seleccionado);
+						Lista.toStringg();
+						
+					}catch (Exception f){}
+					
+					try{
+						FormatoFecha prueba = new FormatoFecha();
+						textAreaMain.setText("");
+						Calendar hoy = Calendar.getInstance();
+						frmtdtxtfldFecha.setText(prueba.valueToString(hoy.getTime()));
+						imagen=null;
+						panel.setBackground(null, 0, 0);
+					}catch(Exception r){}
+				}
+			}
+		});
+		btnAddImagen.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser selector = new JFileChooser();
+				FileNameExtensionFilter filtro = new FileNameExtensionFilter("*.jpg", "jpg",".png","png");
+				selector.setFileFilter(filtro);
+				int seleccion = selector.showOpenDialog(contentPane);
+				if (seleccion == JFileChooser.APPROVE_OPTION) {
+					File fichero = selector.getSelectedFile();
+					imagen=fichero.getAbsolutePath();
+					ImageIcon h = new ImageIcon(fichero.getAbsolutePath());
+					panel.setBackground(fichero.getAbsolutePath(),h.getIconWidth(), h.getIconHeight());
+				}
+			}
+		});
+		
+		btnEliminarImagen.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				imagen=null;
+				panel.setBackground(null, 0, 0);
+				Lista.getTweet(seleccionado).setImage(null);
+			}
+		});
 		
 		
-		
-		
+
 		
 	}
 	

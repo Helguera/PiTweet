@@ -33,4 +33,8 @@ class FormatoFecha extends MaskFormatter
             return formato.format((Date)value);
         return formato.format(new Date());
     }
+    
+   /* public Date valueToDate(String text){
+    	
+    }*/
 }
