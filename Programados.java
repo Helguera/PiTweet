@@ -34,6 +34,10 @@ public class Programados <Elemento extends Tweet> {
 		
 	}
 	
+	public void remove(int posicion){
+		Programados.remove(posicion);
+	}
+	
 	public void remove(String texto){
 		for(Tweet elemento: Programados){
 			if (elemento.getTitulo().equals(texto)){
@@ -51,6 +55,10 @@ public class Programados <Elemento extends Tweet> {
 				return E;
 			}
 		}return A;
+	}
+	
+	public Tweet getTweet(int posicion){
+		return Programados.get(posicion);
 	}
 	
 	public String get(String texto){
@@ -73,6 +81,10 @@ public class Programados <Elemento extends Tweet> {
 		for(Tweet elemento: Programados){
 			Ventana_Main.list.add(elemento.getTitulo());
 		}
+	}
+	
+	public int size(){
+		return Programados.size();
 	}
 	
 	/*public static void main (String args[]){
